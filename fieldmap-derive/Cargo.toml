@@ -1,0 +1,21 @@
+[package]
+name = "fieldmap-derive"
+version = "0.1.0"
+authors = ["frozenlib"]
+license = "MIT/Apache-2.0"
+repository = "https://github.com/frozenlib/fieldmap"
+documentation = "https://docs.rs/fieldmap/"
+keywords = ["compile-time"]
+categories = ["rust-patterns"]
+description = "Derive macro for fieldmap crate."
+exclude = [".vscode/*"]
+edition = "2018"
+
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "0.15"
+quote = "0.6"
+proc-macro2 = "0.4"

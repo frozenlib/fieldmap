@@ -1,0 +1,16 @@
+[package]
+name = "fieldmap"
+version = "0.1.0"
+authors = ["FrozenLib"]
+license = "MIT/Apache-2.0"
+repository = "https://github.com/frozenlib/fieldmap"
+documentation = "https://docs.rs/fieldmap/"
+keywords = ["compile-time"]
+categories = ["rust-patterns"]
+description = "Zero cost compile-time map based on struct."
+exclude = [".vscode/*"]
+edition = "2018"
+
+
+[dependencies]
+fieldmap-derive = { version = "0.1.0", path = "../fieldmap-derive" }
