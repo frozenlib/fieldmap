@@ -158,7 +158,7 @@ fn impl_field_map(
         }
 
         impl<'a> ::core::iter::IntoIterator for &'a #self_id {
-            type Item = &'a dyn #item_id;
+            type Item = &'a (dyn #item_id + 'static);
             type IntoIter = ::fieldmap::FieldMapIter<'a, #self_id>;
 
             fn into_iter(self) -> Self::IntoIter {
@@ -167,7 +167,7 @@ fn impl_field_map(
         }
 
         impl<'a> ::core::iter::IntoIterator for &'a mut #self_id {
-            type Item = &'a mut dyn #item_id;
+            type Item = &'a mut (dyn #item_id + 'static);
             type IntoIter = ::fieldmap::FieldMapIterMut<'a, #self_id>;
 
             fn into_iter(self) -> Self::IntoIter {
