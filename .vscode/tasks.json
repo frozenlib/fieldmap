@@ -51,6 +51,25 @@
         },
         {
             "type": "shell",
+            "label": "cargo expand test",
+            "command": "cargo",
+            "args": [
+                "expand",
+                "-p",
+                "fieldmap",
+                "--test",
+                "${fileBasenameNoExtension}",
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "presentation": {
+                "panel": "dedicated",
+                "clear": true,
+            },
+        },
+        {
+            "type": "shell",
             "label": "cargo doc",
             "command": "cargo",
             "args": [

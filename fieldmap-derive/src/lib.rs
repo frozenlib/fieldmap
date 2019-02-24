@@ -12,28 +12,27 @@ use syn::*;
 #[proc_macro_derive(FieldMap, attributes(field_map))]
 pub fn derive_field_map(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let ident = &input.ident;
     let mut ts = TokenStream::new();
-    if let Data::Struct(s) = input.data {
+    if let Data::Struct(s) = &input.data {
         match &s.fields {
             Fields::Named(fields) => {
-                impl_field_map_entry_all(ident, &fields.named, &mut ts);
+                impl_field_all(&input, &fields.named, &mut ts);
             }
             Fields::Unnamed(fields) => {
-                impl_field_map_entry_all(ident, &fields.unnamed, &mut ts);
+                impl_field_all(&input, &fields.unnamed, &mut ts);
             }
             Fields::Unit => {}
         }
         if let Some((item_id, span)) = get_item_trait(&input.attrs) {
             match &s.fields {
                 Fields::Named(fields) => {
-                    impl_field_map(ident, &item_id, &fields.named, span, &mut ts);
+                    impl_field_map(&input, &item_id, &fields.named, span, &mut ts);
                 }
                 Fields::Unnamed(fields) => {
-                    impl_field_map(ident, &item_id, &fields.unnamed, span, &mut ts);
+                    impl_field_map(&input, &item_id, &fields.unnamed, span, &mut ts);
                 }
                 Fields::Unit => {
-                    impl_field_map(ident, &item_id, &Punctuated::new(), span, &mut ts);
+                    impl_field_map(&input, &item_id, &Punctuated::new(), span, &mut ts);
                 }
             }
         }
@@ -43,13 +42,9 @@ pub fn derive_field_map(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     }
 }
 
-fn impl_field_map_entry_all(
-    struct_ident: &Ident,
-    fields: &Punctuated<Field, Comma>,
-    ts: &mut TokenStream,
-) {
+fn impl_field_all(input: &DeriveInput, fields: &Punctuated<Field, Comma>, ts: &mut TokenStream) {
     for (idx, field) in fields.iter().enumerate() {
-        impl_field_map_entry(struct_ident, idx, field, ts);
+        impl_field(input, idx, field, ts);
     }
 }
 fn to_id(idx: usize, field: &Field) -> proc_macro2::TokenStream {
@@ -60,12 +55,15 @@ fn to_id(idx: usize, field: &Field) -> proc_macro2::TokenStream {
     }
 }
 
-fn impl_field_map_entry(self_id: &Ident, idx: usize, field: &Field, ts: &mut TokenStream) {
+fn impl_field(input: &DeriveInput, idx: usize, field: &Field, ts: &mut TokenStream) {
+    let self_id = &input.ident;
+    let (impl_g, self_g, impl_where) = input.generics.split_for_impl();
+
     let id = to_id(idx, field);
     let ty = &field.ty;
 
     let code = quote! {
-        impl ::fieldmap::FieldMapEntry<#ty> for #self_id {
+        impl #impl_g ::fieldmap::Field<#ty> for #self_id #self_g #impl_where {
             #[inline]
             fn get(&self) -> &#ty {
                 &self.#id
@@ -107,12 +105,16 @@ fn get_item_trait(attrs: &[syn::Attribute]) -> Option<(Type, Span)> {
     None
 }
 fn impl_field_map(
-    self_id: &Ident,
+    input: &DeriveInput,
     item_id: &Type,
     fields: &Punctuated<Field, Comma>,
     span: Span,
     ts: &mut TokenStream,
 ) {
+    let self_id = &input.ident;
+    let (impl_g, self_g, impl_where) = input.generics.split_for_impl();
+    let impl_gps = &input.generics.params;
+
     let mut arms_get = Vec::new();
     let mut arms_get_mut = Vec::new();
     for (idx, field) in fields.iter().enumerate() {
@@ -123,7 +125,7 @@ fn impl_field_map(
 
     let len = fields.len();
     let code = quote_spanned! { span =>
-        impl ::fieldmap::FieldMap for #self_id {
+        impl #impl_g ::fieldmap::FieldMap for #self_id #self_g #impl_where {
             type Item = dyn #item_id;
 
             #[inline]
@@ -148,30 +150,21 @@ fn impl_field_map(
             }
         }
 
-        impl #self_id {
-            pub fn iter(&self) -> ::fieldmap::FieldMapIter<Self> {
-                ::fieldmap::FieldMapIter::new(self)
-            }
-            pub fn iter_mut(&mut self) -> ::fieldmap::FieldMapIterMut<Self> {
-                ::fieldmap::FieldMapIterMut::new(self)
+        impl<'_a, #impl_gps> ::core::iter::IntoIterator for &'_a #self_id #self_g #impl_where {
+            type Item = <::fieldmap::Iter<'_a, #self_id #self_g> as Iterator>::Item;
+            type IntoIter = ::fieldmap::Iter<'_a, #self_id #self_g>;
+
+            fn into_iter(self) -> Self::IntoIter {
+                ::fieldmap::FieldMap::iter(self)
             }
         }
 
-        impl<'a> ::core::iter::IntoIterator for &'a #self_id {
-            type Item = &'a (dyn #item_id + 'static);
-            type IntoIter = ::fieldmap::FieldMapIter<'a, #self_id>;
+        impl<'_a, #impl_gps> ::core::iter::IntoIterator for &'_a mut #self_id #self_g #impl_where {
+            type Item = <::fieldmap::IterMut<'_a, #self_id #self_g> as Iterator>::Item;
+            type IntoIter = ::fieldmap::IterMut<'_a, #self_id #self_g>;
 
             fn into_iter(self) -> Self::IntoIter {
-                ::fieldmap::FieldMapIter::new(self)
-            }
-        }
-
-        impl<'a> ::core::iter::IntoIterator for &'a mut #self_id {
-            type Item = &'a mut (dyn #item_id + 'static);
-            type IntoIter = ::fieldmap::FieldMapIterMut<'a, #self_id>;
-
-            fn into_iter(self) -> Self::IntoIter {
-                ::fieldmap::FieldMapIterMut::new(self)
+                ::fieldmap::FieldMap::iter_mut(self)
             }
         }
     };

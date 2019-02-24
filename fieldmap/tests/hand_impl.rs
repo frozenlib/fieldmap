@@ -3,8 +3,11 @@ struct ExampleType {
     value_u16: u16,
 }
 
+// ==================
+// Begin hand impl
+
 impl ::fieldmap::FieldMap for ExampleType {
-    type Item = dyn std::any::Any;
+    type Item = dyn std::fmt::Display;
 
     #[inline]
     fn len(&self) -> usize {
@@ -30,33 +33,24 @@ impl ::fieldmap::FieldMap for ExampleType {
     }
 }
 
-impl ExampleType {
-    pub fn iter(&self) -> ::fieldmap::FieldMapIter<Self> {
-        ::fieldmap::FieldMapIter::new(self)
-    }
-    pub fn iter_mut(&mut self) -> ::fieldmap::FieldMapIterMut<Self> {
-        ::fieldmap::FieldMapIterMut::new(self)
-    }
-}
-
-impl<'a> ::core::iter::IntoIterator for &'a ExampleType {
-    type Item = &'a dyn std::any::Any;
-    type IntoIter = ::fieldmap::FieldMapIter<'a, ExampleType>;
+impl<'_a> ::core::iter::IntoIterator for &'_a ExampleType {
+    type Item = <::fieldmap::Iter<'_a, ExampleType> as Iterator>::Item;
+    type IntoIter = ::fieldmap::Iter<'_a, ExampleType>;
 
     fn into_iter(self) -> Self::IntoIter {
-        ::fieldmap::FieldMapIter::new(self)
+        ::fieldmap::FieldMap::iter(self)
     }
 }
-impl<'a> ::core::iter::IntoIterator for &'a mut ExampleType {
-    type Item = &'a mut dyn std::any::Any;
-    type IntoIter = ::fieldmap::FieldMapIterMut<'a, ExampleType>;
+impl<'_a> ::core::iter::IntoIterator for &'_a mut ExampleType {
+    type Item = <::fieldmap::IterMut<'_a, ExampleType> as Iterator>::Item;
+    type IntoIter = ::fieldmap::IterMut<'_a, ExampleType>;
 
     fn into_iter(self) -> Self::IntoIter {
-        ::fieldmap::FieldMapIterMut::new(self)
+        ::fieldmap::FieldMap::iter_mut(self)
     }
 }
 
-impl ::fieldmap::FieldMapEntry<u8> for ExampleType {
+impl ::fieldmap::Field<u8> for ExampleType {
     #[inline]
     fn get(&self) -> &u8 {
         &self.value_u8
@@ -73,7 +67,7 @@ impl ::fieldmap::FieldMapEntry<u8> for ExampleType {
     }
 }
 
-impl ::fieldmap::FieldMapEntry<u16> for ExampleType {
+impl<'a> ::fieldmap::Field<u16> for ExampleType {
     #[inline]
     fn get(&self) -> &u16 {
         &self.value_u16
@@ -90,65 +84,50 @@ impl ::fieldmap::FieldMapEntry<u16> for ExampleType {
     }
 }
 
+// End hand impl
+// ==================
+
 #[test]
 fn test_get_by_idx() {
     use fieldmap::*;
-    use std::any::Any;
 
     let value = ExampleType {
         value_u8: 10,
         value_u16: 15,
     };
-    assert_eq!(
-        Any::downcast_ref::<u8>(FieldMap::get(&value, 0).unwrap()),
-        Some(&10)
-    );
-    assert_eq!(
-        Any::downcast_ref::<u16>(FieldMap::get(&value, 1).unwrap()),
-        Some(&15)
-    );
+    assert_eq!(format!("{}", FieldMap::get(&value, 0).unwrap()), "10");
+    assert_eq!(format!("{}", FieldMap::get(&value, 1).unwrap()), "15");
+    assert!(FieldMap::get(&value, 2).is_none());
 }
 
 #[test]
 fn test_iter() {
-    use std::any::Any;
+    use fieldmap::*;
 
     let value = ExampleType {
         value_u8: 10,
         value_u16: 15,
     };
 
-    let mut iter = (&value).iter();
-
-    assert_eq!(Any::downcast_ref::<u8>(iter.next().unwrap()), Some(&10));
-    assert_eq!(Any::downcast_ref::<u16>(iter.next().unwrap()), Some(&15));
+    let mut iter = value.iter();
+    assert_eq!(format!("{}", iter.next().unwrap()), "10");
+    assert_eq!(format!("{}", iter.next().unwrap()), "15");
     assert!(iter.next().is_none());
 }
 
 #[test]
 fn test_iter_mut() {
-    use std::any::Any;
+    use fieldmap::*;
 
     let mut value = ExampleType {
         value_u8: 10,
         value_u16: 15,
     };
 
-    {
-        let mut iter = value.iter_mut();
-
-        let r0 = Any::downcast_mut::<u8>(iter.next().unwrap()).unwrap();
-        assert_eq!(*r0, 10);
-        *r0 = 100;
-
-        let r1 = Any::downcast_mut::<u16>(iter.next().unwrap()).unwrap();
-        assert_eq!(*r1, 15);
-        *r1 = 200;
-
-        assert!(iter.next().is_none());
-    }
-    assert_eq!(value.value_u8, 100);
-    assert_eq!(value.value_u16, 200);
+    let mut iter = value.iter_mut();
+    assert_eq!(format!("{}", iter.next().unwrap()), "10");
+    assert_eq!(format!("{}", iter.next().unwrap()), "15");
+    assert!(iter.next().is_none());
 }
 
 #[test]
@@ -160,6 +139,6 @@ fn test_get_static() {
         value_u16: 15,
     };
 
-    assert_eq!(FieldMapEntry::<u8>::get(&value), &10u8);
-    assert_eq!(FieldMapEntry::<u16>::get(&value), &15u16);
+    assert_eq!(Field::<u8>::get(&value), &10u8);
+    assert_eq!(Field::<u16>::get(&value), &15u16);
 }
