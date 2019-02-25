@@ -27,9 +27,11 @@
 //! assert_eq!(*Field::<String>::get(&x), "300");
 //! ```
 //!
+//! `#[derive(Field)]` can use only struct with different type of each field.
+//!
 //! # Derive [`Fields`]
 //!
-//! Following example implement [`Fields`].
+//! `#[derive(Fields)]` implements [`Fields`].
 //!
 //! You need to specify `#[fields(item = "{TraitName}")]`.
 //!
