@@ -38,7 +38,7 @@ pub fn derive_field_map(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         }
         proc_macro::TokenStream::from(ts)
     } else {
-        panic!("Deriveing `FieldMap` supports only struct.");
+        panic!("`#[derive(Field)]` supports only struct.");
     }
 }
 
