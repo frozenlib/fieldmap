@@ -6,7 +6,7 @@
 
 Zero cost compile-time map based on struct.
 
-## How to derive(Field)
+## Derive `Field`
 
 `#[derive(Field)]` implements `Field`.
 
@@ -33,14 +33,18 @@ assert_eq!(*Field::<u16>::get(&x), 200);
 assert_eq!(*Field::<String>::get(&x), "300");
 ```
 
-In order to implement `FieldMap` you need to specify `#[field_map(item = "{TraitName}")]`.
+## Derive `Fields`
+
+Following example implement [`Fields`].
+
+You need to specify `#[fields(item = "{TraitName}")]`.
 
 ```rust
-use fieldmap::{Field, FieldMap};
+use fieldmap::Fields;
 use std::fmt::Debug;
 
-#[derive(Field)]
-#[field_map(item = "Debug")]
+#[derive(Fields)]
+#[fields(item = "Debug")]
 struct ExampleType {
     value_u8: u8,
     value_u16: u16,
@@ -65,7 +69,7 @@ Output:
 ```
 
 ## Limitation
-Only `'static` type can implement `FieldMap`.
+Only `'static` type can implement `Fields`.
 Because this limitation is caused by Rust not supporting GAT (generic associated types),
 so the limitation may be removed in the future.
 

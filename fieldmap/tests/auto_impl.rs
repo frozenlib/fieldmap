@@ -1,7 +1,7 @@
-use fieldmap::Field;
+use fieldmap::{Field, Fields};
 
-#[derive(Field)]
-#[field_map(item = "std::fmt::Display")]
+#[derive(Field, Fields)]
+#[fields(item = "std::fmt::Display")]
 struct ExampleType {
     value_u8: u8,
     value_u16: u16,
@@ -15,9 +15,9 @@ fn test_get_by_idx() {
         value_u8: 10,
         value_u16: 15,
     };
-    assert_eq!(format!("{}", FieldMap::get(&value, 0).unwrap()), "10");
-    assert_eq!(format!("{}", FieldMap::get(&value, 1).unwrap()), "15");
-    assert!(FieldMap::get(&value, 2).is_none());
+    assert_eq!(format!("{}", Fields::get(&value, 0).unwrap()), "10");
+    assert_eq!(format!("{}", Fields::get(&value, 1).unwrap()), "15");
+    assert!(Fields::get(&value, 2).is_none());
 }
 
 #[test]

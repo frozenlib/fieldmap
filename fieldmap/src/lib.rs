@@ -1,6 +1,6 @@
 //! Zero cost compile-time map based on struct.
 //!
-//! # How to derive(Field)
+//! # Derive [`Field`]
 //!
 //! `#[derive(Field)]` implements [`Field`].
 //!
@@ -26,14 +26,19 @@
 //! assert_eq!(*Field::<u16>::get(&x), 200);
 //! assert_eq!(*Field::<String>::get(&x), "300");
 //! ```
-//! In order to implement [`FieldMap`] you need to specify `#[field_map(item = "{TraitName}")]`.
+//!
+//! # Derive [`Fields`]
+//!
+//! Following example implement [`Fields`].
+//!
+//! You need to specify `#[fields(item = "{TraitName}")]`.
 //!
 //! ```rust
-//! use fieldmap::{Field, FieldMap};
+//! use fieldmap::Fields;
 //! use std::fmt::Debug;
 //!
-//! #[derive(Field)]
-//! #[field_map(item = "Debug")]
+//! #[derive(Fields)]
+//! #[fields(item = "Debug")]
 //! struct ExampleType {
 //!     value_u8: u8,
 //!     value_u16: u16,
@@ -59,18 +64,18 @@
 //!
 //! # Limitation
 //!
-//! Only `'static` type can implement [`FieldMap`].
+//! Only `'static` type can implement [`Fields`].
 //!
 //! Because this limitation is caused by Rust not supporting GAT (generic associated types),
 //! so the limitation may be removed in the future.
 //!
 
-pub use fieldmap_derive::Field;
+pub use fieldmap_derive::{Field, Fields};
 
 /// An interface for access all fields.
 ///
 /// See the [module-level documentation](index.html) for more details.
-pub trait FieldMap: Sized + 'static {
+pub trait Fields: Sized + 'static {
     // TODO : use generic associated type. (`type Item<'a> : ?Sized;`)
     type Item: ?Sized;
 
@@ -95,13 +100,13 @@ pub trait Field<T> {
     fn replace(&mut self, value: T) -> T;
 }
 
-/// Immutable field iterator of [`FieldMap`].
+/// Immutable field iterator of [`Fields`].
 pub struct Iter<'a, M> {
     m: &'a M,
     idx: usize,
 }
 
-impl<'a, M: FieldMap> Iterator for Iter<'a, M> {
+impl<'a, M: Fields> Iterator for Iter<'a, M> {
     type Item = &'a M::Item;
     fn next(&mut self) -> Option<Self::Item> {
         let value = self.m.get(self.idx);
@@ -115,15 +120,15 @@ impl<'a, M: FieldMap> Iterator for Iter<'a, M> {
         (size, Some(size))
     }
 }
-impl<'a, M: FieldMap> ExactSizeIterator for Iter<'a, M> {}
+impl<'a, M: Fields> ExactSizeIterator for Iter<'a, M> {}
 
-/// Mmutable field iterator of [`FieldMap`].
+/// Mmutable field iterator of [`Fields`].
 pub struct IterMut<'a, M> {
     m: &'a mut M,
     idx: usize,
 }
 
-impl<'a, M: FieldMap> Iterator for IterMut<'a, M> {
+impl<'a, M: Fields> Iterator for IterMut<'a, M> {
     type Item = &'a mut M::Item;
     fn next(&mut self) -> Option<Self::Item> {
         let value = self.m.get_mut(self.idx);
@@ -137,4 +142,4 @@ impl<'a, M: FieldMap> Iterator for IterMut<'a, M> {
         (size, Some(size))
     }
 }
-impl<'a, M: FieldMap> ExactSizeIterator for IterMut<'a, M> {}
+impl<'a, M: Fields> ExactSizeIterator for IterMut<'a, M> {}

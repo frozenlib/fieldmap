@@ -1,9 +1,9 @@
 fn main() {
-    use fieldmap::{Field, FieldMap};
+    use fieldmap::Fields;
     use std::fmt::Debug;
 
-    #[derive(Field)]
-    #[field_map(item = "Debug")]
+    #[derive(Fields)]
+    #[fields(item = "Debug")]
     struct ExampleType {
         value_u8: u8,
         value_u16: u16,

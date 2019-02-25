@@ -6,7 +6,7 @@ struct ExampleType {
 // ==================
 // Begin hand impl
 
-impl ::fieldmap::FieldMap for ExampleType {
+impl ::fieldmap::Fields for ExampleType {
     type Item = dyn std::fmt::Display;
 
     #[inline]
@@ -38,7 +38,7 @@ impl<'_a> ::core::iter::IntoIterator for &'_a ExampleType {
     type IntoIter = ::fieldmap::Iter<'_a, ExampleType>;
 
     fn into_iter(self) -> Self::IntoIter {
-        ::fieldmap::FieldMap::iter(self)
+        ::fieldmap::Fields::iter(self)
     }
 }
 impl<'_a> ::core::iter::IntoIterator for &'_a mut ExampleType {
@@ -46,7 +46,7 @@ impl<'_a> ::core::iter::IntoIterator for &'_a mut ExampleType {
     type IntoIter = ::fieldmap::IterMut<'_a, ExampleType>;
 
     fn into_iter(self) -> Self::IntoIter {
-        ::fieldmap::FieldMap::iter_mut(self)
+        ::fieldmap::Fields::iter_mut(self)
     }
 }
 
@@ -95,9 +95,9 @@ fn test_get_by_idx() {
         value_u8: 10,
         value_u16: 15,
     };
-    assert_eq!(format!("{}", FieldMap::get(&value, 0).unwrap()), "10");
-    assert_eq!(format!("{}", FieldMap::get(&value, 1).unwrap()), "15");
-    assert!(FieldMap::get(&value, 2).is_none());
+    assert_eq!(format!("{}", Fields::get(&value, 0).unwrap()), "10");
+    assert_eq!(format!("{}", Fields::get(&value, 1).unwrap()), "15");
+    assert!(Fields::get(&value, 2).is_none());
 }
 
 #[test]

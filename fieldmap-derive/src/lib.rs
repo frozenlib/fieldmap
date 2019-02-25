@@ -9,20 +9,11 @@ use syn::token::*;
 use syn::Type;
 use syn::*;
 
-#[proc_macro_derive(Field, attributes(field_map))]
+#[proc_macro_derive(Fields, attributes(fields))]
 pub fn derive_field_map(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let mut ts = TokenStream::new();
     if let Data::Struct(s) = &input.data {
-        match &s.fields {
-            Fields::Named(fields) => {
-                impl_field_all(&input, &fields.named, &mut ts);
-            }
-            Fields::Unnamed(fields) => {
-                impl_field_all(&input, &fields.unnamed, &mut ts);
-            }
-            Fields::Unit => {}
-        }
         if let Some((item_id, span)) = get_item_trait(&input.attrs) {
             match &s.fields {
                 Fields::Named(fields) => {
@@ -35,8 +26,30 @@ pub fn derive_field_map(input: proc_macro::TokenStream) -> proc_macro::TokenStre
                     impl_field_map(&input, &item_id, &Punctuated::new(), span, &mut ts);
                 }
             }
+            ts.into()
+        } else {
+            panic!("`#[fields(item = \"{TraitName}\"]` required.");
         }
-        proc_macro::TokenStream::from(ts)
+    } else {
+        panic!("`#[derive(Fields)]` supports only struct.");
+    }
+}
+
+#[proc_macro_derive(Field)]
+pub fn derive_field(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let mut ts = TokenStream::new();
+    if let Data::Struct(s) = &input.data {
+        match &s.fields {
+            Fields::Named(fields) => {
+                impl_field_all(&input, &fields.named, &mut ts);
+            }
+            Fields::Unnamed(fields) => {
+                impl_field_all(&input, &fields.unnamed, &mut ts);
+            }
+            Fields::Unit => {}
+        }
+        ts.into()
     } else {
         panic!("`#[derive(Field)]` supports only struct.");
     }
@@ -86,7 +99,7 @@ fn impl_field(input: &DeriveInput, idx: usize, field: &Field, ts: &mut TokenStre
 fn get_item_trait(attrs: &[syn::Attribute]) -> Option<(Type, Span)> {
     for attr in attrs {
         if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-            if meta_list.ident == "field_map" {
+            if meta_list.ident == "fields" {
                 let nested = meta_list.nested;
                 for meta in nested {
                     if let NestedMeta::Meta(Meta::NameValue(nv)) = meta {
@@ -97,7 +110,7 @@ fn get_item_trait(attrs: &[syn::Attribute]) -> Option<(Type, Span)> {
                             }
                         }
                     }
-                    panic!("`fieldmap` attribute must specify `#[fieldmap(item = \"TraitName\")].");
+                    panic!("`fields` attribute must specify `#[fields(item = \"TraitName\")].");
                 }
             }
         }
@@ -125,7 +138,7 @@ fn impl_field_map(
 
     let len = fields.len();
     let code = quote_spanned! { span =>
-        impl #impl_g ::fieldmap::FieldMap for #self_id #self_g #impl_where {
+        impl #impl_g ::fieldmap::Fields for #self_id #self_g #impl_where {
             type Item = dyn #item_id;
 
             #[inline]
@@ -155,7 +168,7 @@ fn impl_field_map(
             type IntoIter = ::fieldmap::Iter<'_a, #self_id #self_g>;
 
             fn into_iter(self) -> Self::IntoIter {
-                ::fieldmap::FieldMap::iter(self)
+                ::fieldmap::Fields::iter(self)
             }
         }
 
@@ -164,7 +177,7 @@ fn impl_field_map(
             type IntoIter = ::fieldmap::IterMut<'_a, #self_id #self_g>;
 
             fn into_iter(self) -> Self::IntoIter {
-                ::fieldmap::FieldMap::iter_mut(self)
+                ::fieldmap::Fields::iter_mut(self)
             }
         }
     };
