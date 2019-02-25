@@ -6,11 +6,10 @@
 
 Zero cost compile-time map based on struct.
 
-## Examples
+## How to derive(FieldMap)
 
-`#[derive(FieldMap)]` implements `Field` and `FieldMap`(optional).
-
-Following example implement `Field` and access field by field type.
+`#[derive(FieldMap)]` implements `Field` and `FieldMap` (optional).
+Following example implement `Field<u8>`, `Field<u16>`, `Field<String>` and access field by field type.
 
 ```rust
 use fieldmap::{FieldMap, Field};
@@ -33,7 +32,7 @@ assert_eq!(*Field::<u16>::get(&x), 200);
 assert_eq!(*Field::<String>::get(&x), "300");
 ```
 
-In order to implement `FiledMap` you need to specify `#[field_map(item = "{TraitName}")]`.
+In order to implement `FieldMap` you need to specify `#[field_map(item = "{TraitName}")]`.
 
 ```rust
 use fieldmap::FieldMap;
@@ -63,6 +62,12 @@ Output:
 200
 "300"
 ```
+
+## Limitation
+Only `'static` type can implement `FieldMap`.
+Because this limitation is caused by Rust not supporting GAT (generic associated types),
+so the limitation may be removed in the future.
+
 
 ## License
 This project is dual licensed under Apache-2.0/MIT. See the two LICENSE-* files for details.
