@@ -72,6 +72,8 @@
 //! so the limitation may be removed in the future.
 //!
 
+use std::iter::FusedIterator;
+
 pub use fieldmap_derive::{Field, Fields};
 
 /// An interface for access all fields.
@@ -123,6 +125,7 @@ impl<'a, M: Fields> Iterator for Iter<'a, M> {
     }
 }
 impl<'a, M: Fields> ExactSizeIterator for Iter<'a, M> {}
+impl<'a, M: Fields> FusedIterator for Iter<'a, M> {}
 
 /// Mmutable field iterator of [`Fields`].
 pub struct IterMut<'a, M> {
@@ -145,3 +148,4 @@ impl<'a, M: Fields> Iterator for IterMut<'a, M> {
     }
 }
 impl<'a, M: Fields> ExactSizeIterator for IterMut<'a, M> {}
+impl<'a, M: Fields> FusedIterator for IterMut<'a, M> {}
