@@ -1,6 +1,6 @@
-use fieldmap::FieldMap;
+use fieldmap::Field;
 
-#[derive(FieldMap)]
+#[derive(Field)]
 #[field_map(item = "std::fmt::Display")]
 struct ExampleType {
     value_u8: u8,

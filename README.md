@@ -6,13 +6,14 @@
 
 Zero cost compile-time map based on struct.
 
-## How to derive(FieldMap)
+## How to derive(Field)
 
-`#[derive(FieldMap)]` implements `Field` and `FieldMap` (optional).
+`#[derive(Field)]` implements `Field`.
+
 Following example implement `Field<u8>`, `Field<u16>`, `Field<String>` and access field by field type.
 
 ```rust
-use fieldmap::{FieldMap, Field};
+use fieldmap::Field;
 
 #[derive(FieldMap)]
 struct ExampleType {
@@ -35,10 +36,10 @@ assert_eq!(*Field::<String>::get(&x), "300");
 In order to implement `FieldMap` you need to specify `#[field_map(item = "{TraitName}")]`.
 
 ```rust
-use fieldmap::FieldMap;
+use fieldmap::{Field, FieldMap};
 use std::fmt::Debug;
 
-#[derive(FieldMap)]
+#[derive(Field)]
 #[field_map(item = "Debug")]
 struct ExampleType {
     value_u8: u8,

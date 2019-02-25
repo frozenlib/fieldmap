@@ -9,7 +9,7 @@ use syn::token::*;
 use syn::Type;
 use syn::*;
 
-#[proc_macro_derive(FieldMap, attributes(field_map))]
+#[proc_macro_derive(Field, attributes(field_map))]
 pub fn derive_field_map(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let mut ts = TokenStream::new();
