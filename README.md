@@ -15,7 +15,7 @@ Following example implement `Field<u8>`, `Field<u16>`, `Field<String>` and acces
 ```rust
 use fieldmap::Field;
 
-#[derive(FieldMap)]
+#[derive(Field)]
 struct ExampleType {
     value_u8: u8,
     value_u16: u16,
