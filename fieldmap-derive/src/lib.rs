@@ -60,11 +60,11 @@ fn impl_field_all(input: &DeriveInput, fields: &Punctuated<Field, Comma>, ts: &m
         impl_field(input, idx, field, ts);
     }
 }
-fn to_id(idx: usize, field: &Field) -> proc_macro2::TokenStream {
+fn to_id(idx: usize, field: &Field) -> Member {
     if let Some(id) = &field.ident {
-        quote! { #id }
+        parse2(quote!(#id)).unwrap()
     } else {
-        quote! { #idx }
+        parse_str(&format!("{}", idx)).unwrap()
     }
 }
 
