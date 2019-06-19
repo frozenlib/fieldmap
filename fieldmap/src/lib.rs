@@ -83,7 +83,10 @@ pub trait Fields: Sized + 'static {
     // TODO : use generic associated type. (`type Item<'a> : ?Sized;`)
     type Item: ?Sized;
 
-    fn len(&self) -> usize;
+    fn len() -> usize;
+    fn find(name: &str) -> Option<usize>;
+    fn name(idx: usize) -> Option<&'static str>;
+
     fn get(&self, idx: usize) -> Option<&Self::Item>;
     fn get_mut(&mut self, idx: usize) -> Option<&mut Self::Item>;
 
@@ -101,7 +104,6 @@ pub trait Fields: Sized + 'static {
 pub trait Field<T> {
     fn get(&self) -> &T;
     fn get_mut(&mut self) -> &mut T;
-    fn replace(&mut self, value: T) -> T;
 }
 
 /// Immutable field iterator of [`Fields`].
@@ -111,16 +113,17 @@ pub struct Iter<'a, M> {
 }
 
 impl<'a, M: Fields> Iterator for Iter<'a, M> {
-    type Item = &'a M::Item;
+    type Item = (&'static str, &'a M::Item);
     fn next(&mut self) -> Option<Self::Item> {
-        let value = self.m.get(self.idx);
-        if value.is_some() {
+        if let (Some(name), Some(value)) = (M::name(self.idx), self.m.get(self.idx)) {
             self.idx += 1;
+            Some((name, value))
+        } else {
+            None
         }
-        value
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let size = self.m.len() - self.idx;
+        let size = M::len() - self.idx;
         (size, Some(size))
     }
 }
@@ -134,16 +137,17 @@ pub struct IterMut<'a, M> {
 }
 
 impl<'a, M: Fields> Iterator for IterMut<'a, M> {
-    type Item = &'a mut M::Item;
+    type Item = (&'static str, &'a mut M::Item);
     fn next(&mut self) -> Option<Self::Item> {
-        let value = self.m.get_mut(self.idx);
-        if value.is_some() {
+        if let (Some(name), Some(value)) = (M::name(self.idx), self.m.get_mut(self.idx)) {
             self.idx += 1;
+            Some((name, unsafe { ::core::mem::transmute(value) }))
+        } else {
+            None
         }
-        unsafe { ::core::mem::transmute(value) }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let size = self.m.len() - self.idx;
+        let size = M::len() - self.idx;
         (size, Some(size))
     }
 }

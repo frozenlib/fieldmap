@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 struct ExampleType {
     value_u8: u8,
     value_u16: u16,
@@ -10,8 +12,26 @@ impl ::fieldmap::Fields for ExampleType {
     type Item = dyn std::fmt::Display;
 
     #[inline]
-    fn len(&self) -> usize {
+    fn len() -> usize {
         2
+    }
+
+    #[inline]
+    fn name(idx: usize) -> ::core::option::Option<&'static str> {
+        match idx {
+            0 => Some("value_u8"),
+            1 => Some("value_u16"),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    fn find(name: &str) -> ::core::option::Option<usize> {
+        match name {
+            "value_u8" => Some(0),
+            "value_u16" => Some(1),
+            _ => None,
+        }
     }
 
     #[inline]
@@ -60,11 +80,6 @@ impl ::fieldmap::Field<u8> for ExampleType {
     fn get_mut(&mut self) -> &mut u8 {
         &mut self.value_u8
     }
-
-    #[inline]
-    fn replace(&mut self, value: u8) -> u8 {
-        ::core::mem::replace(&mut self.value_u8, value)
-    }
 }
 
 impl<'a> ::fieldmap::Field<u16> for ExampleType {
@@ -76,11 +91,6 @@ impl<'a> ::fieldmap::Field<u16> for ExampleType {
     #[inline]
     fn get_mut(&mut self) -> &mut u16 {
         &mut self.value_u16
-    }
-
-    #[inline]
-    fn replace(&mut self, value: u16) -> u16 {
-        ::core::mem::replace(&mut self.value_u16, value)
     }
 }
 
@@ -110,8 +120,8 @@ fn test_iter() {
     };
 
     let mut iter = value.iter();
-    assert_eq!(format!("{}", iter.next().unwrap()), "10");
-    assert_eq!(format!("{}", iter.next().unwrap()), "15");
+    assert_next(&mut iter, "value_u8", "10");
+    assert_next(&mut iter, "value_u16", "15");
     assert!(iter.next().is_none());
 }
 
@@ -125,8 +135,8 @@ fn test_iter_mut() {
     };
 
     let mut iter = value.iter_mut();
-    assert_eq!(format!("{}", iter.next().unwrap()), "10");
-    assert_eq!(format!("{}", iter.next().unwrap()), "15");
+    assert_next(&mut iter, "value_u8", "10");
+    assert_next(&mut iter, "value_u16", "15");
     assert!(iter.next().is_none());
 }
 
@@ -141,4 +151,19 @@ fn test_get_static() {
 
     assert_eq!(Field::<u8>::get(&value), &10u8);
     assert_eq!(Field::<u16>::get(&value), &15u16);
+}
+
+fn assert_next(
+    iter: &mut impl Iterator<Item = (&'static str, impl Display)>,
+    name: &str,
+    value: &str,
+) {
+    if let Some((a_name, a_value)) = iter.next() {
+        assert_eq!(
+            format!("{} = {}", a_name, a_value),
+            format!("{} = {}", name, value)
+        );
+    } else {
+        panic!("next() return None.");
+    }
 }

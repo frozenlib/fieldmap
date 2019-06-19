@@ -60,7 +60,7 @@ fn impl_field_all(input: &DeriveInput, fields: &Punctuated<Field, Comma>, ts: &m
         impl_field(input, idx, field, ts);
     }
 }
-fn to_id(idx: usize, field: &Field) -> Member {
+fn to_member(idx: usize, field: &Field) -> Member {
     if let Some(id) = &field.ident {
         parse2(quote!(#id)).unwrap()
     } else {
@@ -72,7 +72,7 @@ fn impl_field(input: &DeriveInput, idx: usize, field: &Field, ts: &mut TokenStre
     let self_id = &input.ident;
     let (impl_g, self_g, impl_where) = input.generics.split_for_impl();
 
-    let id = to_id(idx, field);
+    let id = to_member(idx, field);
     let ty = &field.ty;
 
     let code = quote! {
@@ -85,11 +85,6 @@ fn impl_field(input: &DeriveInput, idx: usize, field: &Field, ts: &mut TokenStre
             #[inline]
             fn get_mut(&mut self) -> &mut #ty {
                 &mut self.#id
-            }
-
-            #[inline]
-            fn replace(&mut self, value: #ty) -> #ty {
-                ::core::mem::replace(&mut self.#id, value)
             }
         }
     };
@@ -130,10 +125,17 @@ fn impl_field_map(
 
     let mut arms_get = Vec::new();
     let mut arms_get_mut = Vec::new();
+    let mut arms_name = Vec::new();
+    let mut arms_find = Vec::new();
     for (idx, field) in fields.iter().enumerate() {
-        let id = to_id(idx, field);
-        arms_get.push(quote!(#idx => Some(&self.#id)));
-        arms_get_mut.push(quote!(#idx => Some(&mut self.#id)));
+        let key = FieldKey::new(idx, field);
+        let m = key.to_member();
+        arms_get.push(quote!(#idx => Some(&self.#m)));
+        arms_get_mut.push(quote!(#idx => Some(&mut self.#m)));
+
+        let s = key.to_string();
+        arms_name.push(quote!(#idx => Some(#s)));
+        arms_find.push(quote!(#s => Some(#idx)));
     }
 
     let len = fields.len();
@@ -142,10 +144,23 @@ fn impl_field_map(
             type Item = dyn #item_id;
 
             #[inline]
-            fn len(&self) -> usize {
+            fn len() -> usize {
                #len
             }
-
+            #[inline]
+            fn find(name: &str) -> Option<usize> {
+                match name {
+                    #(#arms_find,)*
+                    _ => None,
+                }
+            }
+            #[inline]
+            fn name(idx: usize) -> Option<&'static str> {
+                match idx {
+                    #(#arms_name,)*
+                    _ => None,
+                }
+            }
             #[inline]
             fn get(&self, idx: usize) -> ::core::option::Option<&Self::Item> {
                 match idx {
@@ -153,7 +168,6 @@ fn impl_field_map(
                     _ => None,
                 }
             }
-
             #[inline]
             fn get_mut(&mut self, idx: usize) -> ::core::option::Option<&mut Self::Item> {
                 match idx {
@@ -182,4 +196,40 @@ fn impl_field_map(
         }
     };
     ts.extend(code);
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+enum FieldKey {
+    Named(Ident),
+    Unnamed(usize),
+}
+
+impl FieldKey {
+    fn new(idx: usize, field: &Field) -> Self {
+        if let Some(ident) = &field.ident {
+            FieldKey::Named(ident.clone())
+        } else {
+            FieldKey::Unnamed(idx)
+        }
+    }
+    fn to_member(&self) -> Member {
+        match self {
+            FieldKey::Named(ident) => Member::Named(ident.clone()),
+            FieldKey::Unnamed(idx) => Member::Unnamed(parse_str(&format!("{}", idx)).unwrap()),
+        }
+    }
+    fn to_string(&self) -> String {
+        match self {
+            FieldKey::Named(ident) => trim_raw(&ident.to_string()).to_string(),
+            FieldKey::Unnamed(idx) => format!("{}", idx),
+        }
+    }
+}
+
+fn trim_raw(s: &str) -> &str {
+    if s.starts_with("r#") {
+        &s[2..]
+    } else {
+        s
+    }
 }
