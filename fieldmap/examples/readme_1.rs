@@ -16,7 +16,7 @@ fn main() {
         value_s: "300".into(),
     };
 
-    for a in x.iter() {
-        println!("{:?}", a);
+    for (name, value) in x.iter() {
+        println!("{} = {:?}", name, value);
     }
 }

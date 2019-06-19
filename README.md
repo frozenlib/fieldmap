@@ -59,15 +59,15 @@ let x = ExampleType {
     value_s: "300".into(),
 };
 
-for a in x.iter() {
-    println!("{:?}", a);
+for (name, value) in x.iter() {
+    println!("{} = {:?}", name, value);
 }
 ```
 Output:
 ```text
-100
-200
-"300"
+value_u8 = 100
+value_u16 = 200
+value_s = "300"
 ```
 
 ## Limitation
