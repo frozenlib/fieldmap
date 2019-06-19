@@ -91,16 +91,16 @@ pub trait Fields: Sized + 'static {
     fn get_mut(&mut self, idx: usize) -> Option<&mut Self::Item>;
 
     fn iter(&self) -> Iter<Self> {
-        Iter { m: self, idx: 0 }
+        Iter { s: self, idx: 0 }
     }
     fn iter_mut(&mut self) -> IterMut<Self> {
-        IterMut { m: self, idx: 0 }
+        IterMut { s: self, idx: 0 }
     }
     fn values(&self) -> Values<Self> {
-        Values { m: self, idx: 0 }
+        Values { s: self, idx: 0 }
     }
     fn values_mut(&mut self) -> ValuesMut<Self> {
-        ValuesMut { m: self, idx: 0 }
+        ValuesMut { s: self, idx: 0 }
     }
     fn names() -> Names<Self> {
         Names {
@@ -119,15 +119,15 @@ pub trait Field<T> {
 }
 
 /// Immutable field iterator of [`Fields`].
-pub struct Iter<'a, M> {
-    m: &'a M,
+pub struct Iter<'a, S> {
+    s: &'a S,
     idx: usize,
 }
 
-impl<'a, M: Fields> Iterator for Iter<'a, M> {
-    type Item = (&'static str, &'a M::Item);
+impl<'a, S: Fields> Iterator for Iter<'a, S> {
+    type Item = (&'static str, &'a S::Item);
     fn next(&mut self) -> Option<Self::Item> {
-        if let (Some(name), Some(value)) = (M::name(self.idx), self.m.get(self.idx)) {
+        if let (Some(name), Some(value)) = (S::name(self.idx), self.s.get(self.idx)) {
             self.idx += 1;
             Some((name, value))
         } else {
@@ -135,23 +135,23 @@ impl<'a, M: Fields> Iterator for Iter<'a, M> {
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let size = M::len() - self.idx;
+        let size = S::len() - self.idx;
         (size, Some(size))
     }
 }
-impl<'a, M: Fields> ExactSizeIterator for Iter<'a, M> {}
-impl<'a, M: Fields> FusedIterator for Iter<'a, M> {}
+impl<'a, S: Fields> ExactSizeIterator for Iter<'a, S> {}
+impl<'a, S: Fields> FusedIterator for Iter<'a, S> {}
 
 /// Mmutable field iterator of [`Fields`].
-pub struct IterMut<'a, M> {
-    m: &'a mut M,
+pub struct IterMut<'a, S> {
+    s: &'a mut S,
     idx: usize,
 }
 
-impl<'a, M: Fields> Iterator for IterMut<'a, M> {
-    type Item = (&'static str, &'a mut M::Item);
+impl<'a, S: Fields> Iterator for IterMut<'a, S> {
+    type Item = (&'static str, &'a mut S::Item);
     fn next(&mut self) -> Option<Self::Item> {
-        if let (Some(name), Some(value)) = (M::name(self.idx), self.m.get_mut(self.idx)) {
+        if let (Some(name), Some(value)) = (S::name(self.idx), self.s.get_mut(self.idx)) {
             self.idx += 1;
             Some((name, unsafe { ::core::mem::transmute(value) }))
         } else {
@@ -159,22 +159,22 @@ impl<'a, M: Fields> Iterator for IterMut<'a, M> {
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let size = M::len() - self.idx;
+        let size = S::len() - self.idx;
         (size, Some(size))
     }
 }
-impl<'a, M: Fields> ExactSizeIterator for IterMut<'a, M> {}
-impl<'a, M: Fields> FusedIterator for IterMut<'a, M> {}
+impl<'a, S: Fields> ExactSizeIterator for IterMut<'a, S> {}
+impl<'a, S: Fields> FusedIterator for IterMut<'a, S> {}
 
-pub struct Values<'a, M> {
-    m: &'a M,
+pub struct Values<'a, S> {
+    s: &'a S,
     idx: usize,
 }
 
 impl<'a, M: Fields> Iterator for Values<'a, M> {
     type Item = &'a M::Item;
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.m.get(self.idx) {
+        if let Some(value) = self.s.get(self.idx) {
             self.idx += 1;
             Some(value)
         } else {
@@ -189,15 +189,15 @@ impl<'a, M: Fields> Iterator for Values<'a, M> {
 impl<'a, M: Fields> ExactSizeIterator for Values<'a, M> {}
 impl<'a, M: Fields> FusedIterator for Values<'a, M> {}
 
-pub struct ValuesMut<'a, M> {
-    m: &'a mut M,
+pub struct ValuesMut<'a, S> {
+    s: &'a mut S,
     idx: usize,
 }
 
-impl<'a, M: Fields> Iterator for ValuesMut<'a, M> {
-    type Item = &'a mut M::Item;
+impl<'a, S: Fields> Iterator for ValuesMut<'a, S> {
+    type Item = &'a mut S::Item;
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.m.get_mut(self.idx) {
+        if let Some(value) = self.s.get_mut(self.idx) {
             self.idx += 1;
             Some(unsafe { ::core::mem::transmute(value) })
         } else {
@@ -205,22 +205,22 @@ impl<'a, M: Fields> Iterator for ValuesMut<'a, M> {
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let size = M::len() - self.idx;
+        let size = S::len() - self.idx;
         (size, Some(size))
     }
 }
-impl<'a, M: Fields> ExactSizeIterator for ValuesMut<'a, M> {}
-impl<'a, M: Fields> FusedIterator for ValuesMut<'a, M> {}
+impl<'a, S: Fields> ExactSizeIterator for ValuesMut<'a, S> {}
+impl<'a, S: Fields> FusedIterator for ValuesMut<'a, S> {}
 
-pub struct Names<M> {
+pub struct Names<S> {
     idx: usize,
-    _phantom: PhantomData<fn(&M)>,
+    _phantom: PhantomData<fn(&S)>,
 }
 
-impl<M: Fields> Iterator for Names<M> {
+impl<S: Fields> Iterator for Names<S> {
     type Item = &'static str;
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(value) = M::name(self.idx) {
+        if let Some(value) = S::name(self.idx) {
             self.idx += 1;
             Some(value)
         } else {
@@ -228,9 +228,9 @@ impl<M: Fields> Iterator for Names<M> {
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let size = M::len() - self.idx;
+        let size = S::len() - self.idx;
         (size, Some(size))
     }
 }
-impl<M: Fields> ExactSizeIterator for Names<M> {}
-impl<M: Fields> FusedIterator for Names<M> {}
+impl<S: Fields> ExactSizeIterator for Names<S> {}
+impl<S: Fields> FusedIterator for Names<S> {}
