@@ -29,7 +29,7 @@
         },
         {
             "type": "shell",
-            "label": "cargo run exmaple",
+            "label": "cargo run example",
             "command": "cargo",
             "args": [
                 "run",
