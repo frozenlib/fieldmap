@@ -3,7 +3,7 @@ Zero cost compile-time map based on struct.
 
 ## Derive `Field`
 
-`#[derive(Field)]` implements `Field`.
+`#[derive(Field)]` implements [`Field`].
 
 Following example implement `Field<u8>`, `Field<u16>`, `Field<String>` and access field by field type.
 
@@ -66,12 +66,13 @@ value_s = "300"
 ```
 
 ## Limitation
-Only `'static` type can implement `Fields`.
+Only `'static` type can implement [`Fields`].
 Because this limitation is caused by Rust not supporting GAT (generic associated types),
 so the limitation may be removed in the future.
 */
 
 use std::iter::FusedIterator;
+use std::marker::PhantomData;
 
 pub use fieldmap_derive::{Field, Fields};
 
@@ -94,6 +95,18 @@ pub trait Fields: Sized + 'static {
     }
     fn iter_mut(&mut self) -> IterMut<Self> {
         IterMut { m: self, idx: 0 }
+    }
+    fn values(&self) -> Values<Self> {
+        Values { m: self, idx: 0 }
+    }
+    fn values_mut(&mut self) -> ValuesMut<Self> {
+        ValuesMut { m: self, idx: 0 }
+    }
+    fn names() -> Names<Self> {
+        Names {
+            idx: 0,
+            _phantom: PhantomData,
+        }
     }
 }
 
@@ -152,3 +165,72 @@ impl<'a, M: Fields> Iterator for IterMut<'a, M> {
 }
 impl<'a, M: Fields> ExactSizeIterator for IterMut<'a, M> {}
 impl<'a, M: Fields> FusedIterator for IterMut<'a, M> {}
+
+pub struct Values<'a, M> {
+    m: &'a M,
+    idx: usize,
+}
+
+impl<'a, M: Fields> Iterator for Values<'a, M> {
+    type Item = &'a M::Item;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(value) = self.m.get(self.idx) {
+            self.idx += 1;
+            Some(value)
+        } else {
+            None
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = M::len() - self.idx;
+        (size, Some(size))
+    }
+}
+impl<'a, M: Fields> ExactSizeIterator for Values<'a, M> {}
+impl<'a, M: Fields> FusedIterator for Values<'a, M> {}
+
+pub struct ValuesMut<'a, M> {
+    m: &'a mut M,
+    idx: usize,
+}
+
+impl<'a, M: Fields> Iterator for ValuesMut<'a, M> {
+    type Item = &'a mut M::Item;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(value) = self.m.get_mut(self.idx) {
+            self.idx += 1;
+            Some(unsafe { ::core::mem::transmute(value) })
+        } else {
+            None
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = M::len() - self.idx;
+        (size, Some(size))
+    }
+}
+impl<'a, M: Fields> ExactSizeIterator for ValuesMut<'a, M> {}
+impl<'a, M: Fields> FusedIterator for ValuesMut<'a, M> {}
+
+pub struct Names<M> {
+    idx: usize,
+    _phantom: PhantomData<fn(&M)>,
+}
+
+impl<M: Fields> Iterator for Names<M> {
+    type Item = &'static str;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(value) = M::name(self.idx) {
+            self.idx += 1;
+            Some(value)
+        } else {
+            None
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = M::len() - self.idx;
+        (size, Some(size))
+    }
+}
+impl<M: Fields> ExactSizeIterator for Names<M> {}
+impl<M: Fields> FusedIterator for Names<M> {}
