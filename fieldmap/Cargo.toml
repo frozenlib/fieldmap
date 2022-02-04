@@ -9,7 +9,7 @@ keywords = ["compile-time"]
 categories = ["rust-patterns"]
 description = "Zero cost compile-time map based on struct."
 exclude = [".vscode/*"]
-edition = "2018"
+edition = "2021"
 
 
 [dependencies]

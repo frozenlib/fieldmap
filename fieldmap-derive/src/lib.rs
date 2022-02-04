@@ -28,7 +28,7 @@ pub fn derive_field_map(input: proc_macro::TokenStream) -> proc_macro::TokenStre
             }
             ts.into()
         } else {
-            panic!("`#[fields(item = \"{TraitName}\"]` required.");
+            panic!("`#[fields(item = \"{{TraitName}}\"]` required.");
         }
     } else {
         panic!("`#[derive(Fields)]` supports only struct.");
@@ -94,11 +94,11 @@ fn impl_field(input: &DeriveInput, idx: usize, field: &Field, ts: &mut TokenStre
 fn get_item_trait(attrs: &[syn::Attribute]) -> Option<(Type, Span)> {
     for attr in attrs {
         if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-            if meta_list.ident == "fields" {
+            if meta_list.path.is_ident("fields") {
                 let nested = meta_list.nested;
                 for meta in nested {
                     if let NestedMeta::Meta(Meta::NameValue(nv)) = meta {
-                        if nv.ident == "item" {
+                        if nv.path.is_ident("item") {
                             if let Lit::Str(s) = nv.lit {
                                 let t: Type = syn::parse_str(&s.value()).unwrap();
                                 return Some((t, s.span()));
