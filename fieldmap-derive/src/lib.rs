@@ -4,6 +4,7 @@ extern crate proc_macro;
 
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
+use std::fmt::Display;
 use structmeta::StructMeta;
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
@@ -231,17 +232,19 @@ impl FieldKey {
             FieldKey::Unnamed(idx) => Member::Unnamed(parse_str(&format!("{}", idx)).unwrap()),
         }
     }
-    fn to_string(&self) -> String {
+}
+impl Display for FieldKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            FieldKey::Named(ident) => trim_raw(&ident.to_string()).to_string(),
-            FieldKey::Unnamed(idx) => format!("{}", idx),
+            FieldKey::Named(ident) => write!(f, "{}", trim_raw(&ident.to_string())),
+            FieldKey::Unnamed(idx) => write!(f, "{}", idx),
         }
     }
 }
 
 fn trim_raw(s: &str) -> &str {
-    if s.starts_with("r#") {
-        &s[2..]
+    if let Some(s) = s.strip_prefix("r#") {
+        s
     } else {
         s
     }
