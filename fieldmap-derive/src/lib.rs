@@ -2,36 +2,48 @@
 
 extern crate proc_macro;
 
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
+use structmeta::StructMeta;
 use syn::punctuated::Punctuated;
+use syn::spanned::Spanned;
 use syn::token::*;
-use syn::Type;
 use syn::*;
+use utils::into_macro_output;
+
+#[macro_use]
+mod utils;
 
 #[proc_macro_derive(Fields, attributes(fields))]
 pub fn derive_field_map(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+    into_macro_output(derive_field_map_core(parse_macro_input!(
+        input as DeriveInput
+    )))
+}
+fn derive_field_map_core(input: DeriveInput) -> Result<TokenStream> {
     let mut ts = TokenStream::new();
     if let Data::Struct(s) = &input.data {
-        if let Some((item_id, span)) = get_item_trait(&input.attrs) {
+        if let Some(item_id) = get_item_trait(&input.attrs)? {
             match &s.fields {
                 Fields::Named(fields) => {
-                    impl_field_map(&input, &item_id, &fields.named, span, &mut ts);
+                    impl_field_map(&input, &item_id, &fields.named, &mut ts);
                 }
                 Fields::Unnamed(fields) => {
-                    impl_field_map(&input, &item_id, &fields.unnamed, span, &mut ts);
+                    impl_field_map(&input, &item_id, &fields.unnamed, &mut ts);
                 }
                 Fields::Unit => {
-                    impl_field_map(&input, &item_id, &Punctuated::new(), span, &mut ts);
+                    impl_field_map(&input, &item_id, &Punctuated::new(), &mut ts);
                 }
             }
-            ts.into()
+            Ok(ts)
         } else {
-            panic!("`#[fields(item = \"{{TraitName}}\"]` required.");
+            bail!(
+                input.span(),
+                "`#[fields(item = \"{{TraitName}}\"]` required."
+            );
         }
     } else {
-        panic!("`#[derive(Fields)]` supports only struct.");
+        bail!(input.span(), "`#[derive(Fields)]` supports only struct.");
     }
 }
 
@@ -91,32 +103,33 @@ fn impl_field(input: &DeriveInput, idx: usize, field: &Field, ts: &mut TokenStre
     ts.extend(code);
 }
 
-fn get_item_trait(attrs: &[syn::Attribute]) -> Option<(Type, Span)> {
+#[derive(StructMeta)]
+struct FieldsArgs {
+    item: Expr,
+}
+
+fn get_item_trait(attrs: &[syn::Attribute]) -> Result<Option<Path>> {
     for attr in attrs {
-        if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-            if meta_list.path.is_ident("fields") {
-                let nested = meta_list.nested;
-                for meta in nested {
-                    if let NestedMeta::Meta(Meta::NameValue(nv)) = meta {
-                        if nv.path.is_ident("item") {
-                            if let Lit::Str(s) = nv.lit {
-                                let t: Type = syn::parse_str(&s.value()).unwrap();
-                                return Some((t, s.span()));
-                            }
-                        }
-                    }
-                    panic!("`fields` attribute must specify `#[fields(item = \"TraitName\")].");
-                }
+        if attr.path.is_ident("fields") {
+            let args: FieldsArgs = attr.parse_args()?;
+            match args.item {
+                Expr::Path(path) => return Ok(Some(path.path)),
+                Expr::Lit(ExprLit {
+                    lit: Lit::Str(s), ..
+                }) => return Ok(Some(syn::parse_str::<Path>(&s.value())?)),
+                _ => bail!(
+                    attr.span(),
+                    "item parameter must specify string literal or path."
+                ),
             }
         }
     }
-    None
+    Ok(None)
 }
 fn impl_field_map(
     input: &DeriveInput,
-    item_id: &Type,
+    item_id: &Path,
     fields: &Punctuated<Field, Comma>,
-    span: Span,
     ts: &mut TokenStream,
 ) {
     let self_id = &input.ident;
@@ -139,7 +152,7 @@ fn impl_field_map(
     }
 
     let len = fields.len();
-    let code = quote_spanned! { span =>
+    let code = quote_spanned! { item_id.span() =>
         impl #impl_g ::fieldmap::Fields for #self_id #self_g #impl_where {
             type Item = dyn #item_id;
 

@@ -8,6 +8,13 @@ struct ExampleType {
     value_u16: u16,
 }
 
+#[derive(Field, Fields)]
+#[fields(item = std::fmt::Display)]
+struct ExampleTypeIdent {
+    value_u8: u8,
+    value_u16: u16,
+}
+
 #[test]
 fn test_get_by_idx() {
     use fieldmap::*;
